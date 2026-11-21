@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self'">
+  <title>Picture Book Writer</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- ============ HOME: My Books ============ -->
+  <section id="home" class="screen">
+    <div class="home-inner">
+      <header class="home-hero">
+        <div class="logo-mark" aria-hidden="true">
+          <svg viewBox="0 0 64 64" width="64" height="64"><rect x="6" y="12" width="26" height="40" rx="4" fill="#F28C6B"/><rect x="32" y="12" width="26" height="40" rx="4" fill="#4FA3A5"/><path d="M32 12v40" stroke="#2B2D42" stroke-width="3"/><circle cx="45" cy="26" r="5" fill="#FFD166"/><path d="M12 42c5-7 9-7 14 0" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/></svg>
+        </div>
+        <div>
+          <h1>Picture Book Writer</h1>
+          <p class="hero-sub" id="greeting">Hello! What would you like to do today?</p>
+        </div>
+      </header>
+
+      <div id="recovery-banner" class="banner" hidden></div>
+
+      <div class="big-actions">
+        <button class="big-action primary" id="btn-home-new" data-tip="Start a brand-new picture book">
+          <span class="ba-icon">✨</span>
+          <span class="ba-title">Start a new book</span>
+          <span class="ba-sub">Pick a size and start writing</span>
+        </button>
+        <button class="big-action" id="btn-home-open" data-tip="Find a book file saved somewhere on this computer">
+          <span class="ba-icon">📂</span>
+          <span class="ba-title">Open a book from another folder</span>
+          <span class="ba-sub">Look for a book file on this computer</span>
+        </button>
+      </div>
+
+      <h2 class="section-title">Your books <span class="muted" id="books-where"></span></h2>
+      <div id="book-grid" class="book-grid"></div>
+    </div>
+  </section>
+
+  <!-- ============ EDITOR ============ -->
+  <section id="editor" class="screen" hidden>
+    <header class="toolbar">
+      <button class="tb-btn" id="tb-home" data-tip="Go back to the list of your books"><span class="tb-icon">🏠</span><span>My Books</span></button>
+      <div class="title-wrap">
+        <input id="book-title" class="book-title" spellcheck="true" aria-label="Book title" placeholder="Name your book">
+        <div id="save-status" class="save-status" role="status"></div>
+      </div>
+      <div class="tb-group">
+        <button class="tb-btn" id="tb-save" data-tip="Save your book now (it also saves by itself)"><span class="tb-icon">💾</span><span>Save</span></button>
+        <button class="tb-btn" id="tb-preview" data-tip="See your book like a real book and flip through the pages"><span class="tb-icon">📖</span><span>Preview Book</span></button>
+        <button class="tb-btn" id="tb-read" data-tip="Have the computer read your story out loud"><span class="tb-icon">🔊</span><span>Read Aloud</span></button>
+        <button class="tb-btn" id="tb-pdf" data-tip="Make a PDF to print or send to a publisher"><span class="tb-icon">📄</span><span>Make a PDF</span></button>
+        <button class="tb-btn" id="tb-help" data-tip="Help, tips and a guided tour"><span class="tb-icon">❓</span><span>Help</span></button>
+      </div>
+    </header>
+
+    <div class="workspace">
+      <!-- Book map -->
+      <aside class="bookmap" id="bookmap" aria-label="Book map">
+        <div class="panel-head">
+          <h3>Book Map</h3>
+          <p class="muted small">Click any pages to jump to them</p>
+        </div>
+        <div id="map-list" class="map-list"></div>
+      </aside>
+
+      <!-- Spread editor -->
+      <main class="stage" id="stage">
+        <div class="stage-top">
+          <button class="nav-btn" id="nav-prev" data-tip="Go to the pages before these">◀ Back</button>
+          <div class="spread-label" id="spread-label">Pages</div>
+          <button class="nav-btn" id="nav-next" data-tip="Go to the next pages">Next ▶</button>
+        </div>
+        <div class="format-bar" id="format-bar" aria-label="Text style">
+          <button class="fmt" data-cmd="bold" data-tip="Make words bold (Ctrl+B)"><b>B</b></button>
+          <button class="fmt" data-cmd="italic" data-tip="Make words slanted / italic (Ctrl+I)"><i>I</i></button>
+          <button class="fmt" data-cmd="underline" data-tip="Underline words (Ctrl+U)"><u>U</u></button>
+          <span class="fmt-sep"></span>
+          <label class="join-toggle" data-tip="Tick this if one big picture should stretch across both pages">
+            <input type="checkbox" id="join-spread"> One picture across both pages
+          </label>
+        </div>
+        <div class="spread" id="spread"></div>
+        <div class="page-turn-hint" id="page-turn-hint"></div>
+      </main>
+
+      <!-- Helper panel -->
+      <aside class="helper" id="helper" aria-label="Story helper">
+        <div class="tabs" role="tablist">
+          <button class="tab active" data-tab="story" role="tab">📊 Story Check</button>
+          <button class="tab" data-tab="rhyme" role="tab">🎵 Rhymes</button>
+          <button class="tab" data-tab="details" role="tab">📝 Details</button>
+        </div>
+        <div class="tab-body" id="tab-story"></div>
+        <div class="tab-body" id="tab-rhyme" hidden>
+          <div class="card">
+            <label class="lbl" for="rhyme-input">Find words that rhyme with:</label>
+            <div class="row">
+              <input id="rhyme-input" class="input" placeholder="e.g. moon" autocomplete="off">
+              <button class="btn primary" id="rhyme-go">Find</button>
+            </div>
+            <button class="btn link" id="rhyme-last">Use the last word I typed</button>
+            <div id="rhyme-results" class="rhyme-results"><p class="muted">Type a word above and click <b>Find</b>. Click any rhyme to add it to your page.</p></div>
+          </div>
+          <div class="card">
+            <h4>Beat counter <span class="muted small">(syllables in each line on this page)</span></h4>
+            <p class="muted small">Rhyming lines usually sound best when they have a similar number of beats.</p>
+            <div id="beat-list"></div>
+          </div>
+        </div>
+        <div class="tab-body" id="tab-details" hidden></div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ============ PREVIEW ============ -->
+  <section id="preview" class="preview" hidden aria-label="Book preview">
+    <div class="pv-top">
+      <div class="pv-title" id="pv-title"></div>
+      <div class="pv-actions">
+        <button class="btn ghost-light" id="pv-read">🔊 Read these pages</button>
+        <button class="btn ghost-light" id="pv-close">✕ Close preview</button>
+      </div>
+    </div>
+    <div class="pv-stage">
+      <button class="pv-arrow" id="pv-prev" aria-label="Previous pages">‹</button>
+      <div class="pv-book" id="pv-book"></div>
+      <button class="pv-arrow" id="pv-next" aria-label="Next pages">›</button>
+    </div>
+    <div class="pv-bottom" id="pv-count"></div>
+  </section>
+
+  <!-- ============ READ-ALOUD BAR ============ -->
+  <div id="read-bar" class="read-bar" hidden>
+    <span class="rb-icon">🔊</span>
+    <span id="read-status">Reading…</span>
+    <label class="small">Speed
+      <select id="read-speed">
+        <option value="0.75">Slow</option>
+        <option value="0.9" selected>Gentle</option>
+        <option value="1.05">Normal</option>
+      </select>
+    </label>
+    <button class="btn" id="read-stop">⏹ Stop</button>
+  </div>
+
+  <div id="modal-root"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="tooltip" class="tooltip" hidden></div>
+  <div id="tour" class="tour" hidden></div>
+
+  <script src="words-data.js"></script>
+  <script src="words.js"></script>
+  <script src="export.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

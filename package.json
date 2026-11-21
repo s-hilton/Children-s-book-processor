@@ -1,0 +1,92 @@
+{
+  "name": "picture-book-writer",
+  "productName": "Picture Book Writer",
+  "version": "1.0.0",
+  "description": "A friendly word processor made just for writing children's picture books.",
+  "main": "src/main.js",
+  "author": "Picture Book Writer",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "build-words": "node tools/build-wordlist.js",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac",
+    "dist:linux": "electron-builder --linux",
+    "dist:all": "electron-builder --win --mac --linux"
+  },
+  "devDependencies": {
+    "cmu-pronouncing-dictionary": "^3.0.0",
+    "electron": "^38.8.6",
+    "electron-builder": "^26.18.0",
+    "wordlist-english": "^1.2.1"
+  },
+  "build": {
+    "appId": "app.picturebookwriter.desktop",
+    "productName": "Picture Book Writer",
+    "copyright": "Picture Book Writer",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "fileAssociations": [
+      {
+        "ext": "pbook",
+        "name": "Picture Book",
+        "description": "Picture Book Writer book",
+        "role": "Editor",
+        "icon": "icon"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "artifactName": "Picture-Book-Writer-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "Picture Book Writer",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "category": "public.app-category.productivity",
+      "artifactName": "Picture-Book-Writer-${version}-Mac.${ext}",
+      "identity": "-"
+    },
+    "dmg": {
+      "title": "Picture Book Writer"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "icon": "build/icon.png",
+      "category": "Office",
+      "artifactName": "Picture-Book-Writer-${version}.${ext}"
+    }
+  }
+}

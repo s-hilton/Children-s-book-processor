@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 700" width="1600" height="700">
+  <defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#16204A"/><stop offset="1" stop-color="#3E4E8C"/></linearGradient></defs>
+  <rect width="1600" height="700" fill="url(#s)"/>
+  <g fill="#FFF6C9"><circle cx="100" cy="90" r="3"/><circle cx="260" cy="170" r="2.5"/><circle cx="420" cy="70" r="3"/><circle cx="600" cy="150" r="2"/><circle cx="830" cy="60" r="3"/><circle cx="980" cy="200" r="2.5"/><circle cx="1180" cy="90" r="3"/><circle cx="1380" cy="170" r="2"/><circle cx="1520" cy="60" r="3"/><circle cx="740" cy="250" r="2"/></g>
+  <circle cx="1200" cy="200" r="95" fill="#FFE59A"/>
+  <path d="M1160 210 q 40 35 80 0" stroke="#C9A64A" stroke-width="8" fill="none" stroke-linecap="round"/>
+  <circle cx="1165" cy="180" r="9" fill="#C9A64A"/><circle cx="1235" cy="180" r="9" fill="#C9A64A"/>
+  <path d="M0 700 L0 520 Q 400 430 800 500 Q 1200 560 1600 470 L1600 700 Z" fill="#2E5A47"/>
+  <rect x="300" y="560" width="260" height="34" rx="16" fill="#6B4A2E"/><rect x="330" y="530" width="200" height="32" rx="16" fill="#7D573A"/>
+  <ellipse cx="760" cy="600" rx="170" ry="55" fill="#9C6B43"/>
+  <circle cx="900" cy="575" r="55" fill="#9C6B43"/><circle cx="880" cy="530" r="18" fill="#9C6B43"/>
+  <path d="M885 570 q 12 8 24 0" stroke="#2A211B" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <ellipse cx="940" cy="590" rx="18" ry="14" fill="#D9A77A"/>
+  <g transform="translate(1380 430)"><ellipse cx="0" cy="30" rx="34" ry="44" fill="#8A6A4A"/><circle cx="-13" cy="12" r="12" fill="#fff"/><circle cx="13" cy="12" r="12" fill="#fff"/><circle cx="-13" cy="12" r="5" fill="#222"/><circle cx="13" cy="12" r="5" fill="#222"/><path d="M-5 26 l5 8 5 -8z" fill="#E9B44C"/></g>
+  <path d="M1340 480 L1500 480" stroke="#4A3A2A" stroke-width="10" stroke-linecap="round"/>
+  <text x="1010" y="520" font-family="Georgia" font-size="46" fill="#FFF6C9">♪</text><text x="1060" y="470" font-family="Georgia" font-size="34" fill="#FFF6C9" opacity=".7">♫</text>
+</svg>
