@@ -4,7 +4,18 @@ A friendly desktop word processor made just for writing **children's picture boo
 
 ▶️ **Walkthrough video:** [`demo/Picture-Book-Writer-Demo.mp4`](demo/Picture-Book-Writer-Demo.mp4)
 
-## Getting the app
+## Use it in your web browser (no install)
+
+Open **https://s-hilton.github.io/Children-s-book-processor/** in **Google Chrome** or **Microsoft Edge**.
+
+- When you create a book, a save window opens. Choose your **Desktop** and click **Save**. After that, the book saves itself to that file as you type.
+- To open a book, click it under **Your books**, or click **Open a book from another folder** and pick the `.pbook` file on your Desktop.
+- The first time you open a book in a session, the browser asks for permission to edit the file. Choose **Allow** (or **Allow on every visit**).
+- Optional: click the **Install** icon in the address bar to put the app on your Desktop like a normal program.
+- Firefox and Safari can't save straight to the Desktop. In those browsers, books are kept inside the browser, and **Save** downloads a copy.
+- The web version and the desktop app use the same `.pbook` files, so you can switch between them.
+
+## Getting the desktop app
 
 Go to this project's **Releases** page on GitHub and download the installer for your computer. Step-by-step instructions are on the download page (also in [`docs/RELEASE_NOTES.md`](docs/RELEASE_NOTES.md)).
 

@@ -145,7 +145,13 @@
     return new Date(ms).toLocaleDateString();
   }
 
+  // Web version helpers
+  const isWeb = () => !!(S.info && S.info.web);
+  const saveSpot = () => (isWeb() ? (S.info.fs ? 'on your computer, in the place you choose (the <b>Desktop</b> is suggested)' : 'in this web browser') : 'on your <b>Desktop</b>');
+
   function whereLabel(folder) {
+    if (folder === 'web:file') return 'on your computer';
+    if (folder === 'web:browser') return 'in this web browser';
     if (!folder || !S.info) return '';
     if (folder === S.info.desktop) return 'on your Desktop';
     return 'in ' + folder;
@@ -250,14 +256,14 @@
   function setSaveStatus(state) {
     const el = $('#save-status');
     if (!el || !S.book) return;
-    const where = S.filePath ? whereLabel(S.filePath.replace(/[\\/][^\\/]*$/, '')) : '';
+    const where = S.where ? whereLabel(S.where) : (S.filePath ? whereLabel(S.filePath.replace(/[\\/][^\\/]*$/, '')) : '');
     if (state === 'saving' || S.saving) { el.className = 'save-status saving'; el.innerHTML = '⏳ Saving…'; return; }
     if (state === 'error') { el.className = 'save-status error'; el.innerHTML = '⚠️ Couldn’t save — click Save to try again'; return; }
-    if (!S.filePath) { el.className = 'save-status warn'; el.innerHTML = '⚠️ Not saved yet — click <b>Save</b>'; return; }
+    if (!S.filePath || String(S.filePath).startsWith('new:')) { el.className = 'save-status warn'; el.innerHTML = '⚠️ Not saved yet — click <b>Save</b>'; return; }
     if (S.dirty) { el.className = 'save-status'; el.innerHTML = '✏️ Changes will save in a moment…'; return; }
     el.className = 'save-status ok';
-    el.innerHTML = `✓ All changes saved ${esc(where)} <span class="link-like">· show me</span>`;
-    el.dataset.tip = 'Your book saves itself while you work. Click to see the file.';
+    el.innerHTML = isWeb() ? `✓ All changes saved ${esc(where)}` : `✓ All changes saved ${esc(where)} <span class="link-like">· show me</span>`;
+    el.dataset.tip = isWeb() ? 'Your book saves itself while you work.' : 'Your book saves itself while you work. Click to see the file.';
   }
 
   async function saveNow({ quiet = false } = {}) {
@@ -268,8 +274,11 @@
     setSaveStatus('saving');
     try {
       const rev = S.rev;
-      const r = await api.saveBook(S.filePath, S.book);
+      const r = await api.saveBook(S.filePath, S.book, { quiet });
       S.saving = false;
+      if (r && r.cancelled) { setSaveStatus(); if (!quiet) toast('Not saved yet. Click <b>Save</b> when you’re ready.'); return false; }
+      if (r.path) S.filePath = r.path;
+      if (r.folder) S.where = r.folder;
       if (S.rev === rev) S.dirty = false;
       S.lastSaved = Date.now();
       setSaveStatus();
@@ -290,9 +299,9 @@
       title: '💾 Save your book',
       body: `<label class="lbl">What should we call the file?</label>
         <input class="input big" id="sv-name" value="${esc(S.book.title)}">
-        <p class="where-line">It will be saved on your <b>Desktop</b>. <button class="btn link" id="sv-folder">Choose a different place</button></p>`,
+        <p class="where-line">It will be saved ${saveSpot()}. ${isWeb() ? '' : '<button class="btn link" id="sv-folder">Choose a different place</button>'}</p>`,
       onOpen: (w) => {
-        $('#sv-folder', w).addEventListener('click', async () => {
+        if ($('#sv-folder', w)) $('#sv-folder', w).addEventListener('click', async () => {
           const f = await api.chooseFolder();
           if (f) { folder = f; $('.where-line', w).innerHTML = `It will be saved in <b>${esc(f)}</b>.`; }
         });
@@ -318,7 +327,7 @@
     if (S.book && S.dirty) await saveNow({ quiet: true });
     try {
       const r = await api.openBook(filePath);
-      loadBook(normalizeBook(r.book), r.path);
+      loadBook(normalizeBook(r.book), r.path, r.folder);
       toast(`📖 Opened <b>${esc(S.book.title)}</b>`);
     } catch (err) {
       await modal({ title: 'That book couldn’t be opened', body: `<p>It may have been moved, renamed or deleted.</p><p class="muted small">${esc(err.message || err)}</p>` });
@@ -347,14 +356,15 @@
     $('#home').hidden = false;
     const h = new Date().getHours();
     $('#greeting').textContent = (h < 12 ? 'Good morning!' : h < 18 ? 'Good afternoon!' : 'Good evening!') + ' What would you like to do today?';
-    $('#books-where').textContent = '— books on your Desktop and ones you opened recently';
+    $('#books-where').textContent = isWeb() ? '— books you’ve opened or created here' : '— books on your Desktop and ones you opened recently';
+    renderWebNote();
     await renderRecovery();
     const grid = $('#book-grid');
     grid.innerHTML = '<p class="muted">Looking for your books…</p>';
     let books = [];
     try { books = await api.listBooks(); } catch { /* ignore */ }
     if (!books.length) {
-      grid.innerHTML = `<div class="empty-books"><div class="eb-icon">📚</div><p><b>No books yet.</b></p><p class="muted">Click <b>Start a new book</b> above — your book will be saved on your Desktop automatically.</p></div>`;
+      grid.innerHTML = `<div class="empty-books"><div class="eb-icon">📚</div><p><b>No books yet.</b></p><p class="muted">Click <b>Start a new book</b> above — your book will be saved ${saveSpot()}, and it saves itself as you write.</p></div>`;
       return;
     }
     grid.innerHTML = '';
@@ -373,14 +383,24 @@
           <div class="bc-meta">Last changed ${timeAgo(b.modified)}</div>
           <div class="bc-where">📍 ${esc(whereLabel(b.folder))}</div>
         </div>
-        <div class="bc-actions"><button class="btn primary">Open</button><button class="btn subtle bc-show" data-tip="Show this file in its folder">Show file</button></div>`;
+        <div class="bc-actions"><button class="btn primary">Open</button>${isWeb() ? '<button class="btn subtle bc-forget" data-tip="Take this book off the list (the file itself is not deleted)">Remove from list</button>' : '<button class="btn subtle bc-show" data-tip="Show this file in its folder">Show file</button>'}</div>`;
       card.addEventListener('click', (e) => {
         if (e.target.closest('.bc-show')) { api.showFile(b.path); return; }
+        if (e.target.closest('.bc-forget')) { api.forgetBook(b.path).then(showHome); return; }
         openPath(b.path);
       });
       card.addEventListener('keydown', (e) => { if (e.key === 'Enter') openPath(b.path); });
       grid.appendChild(card);
     });
+  }
+
+  function renderWebNote() {
+    let el = $('#web-note');
+    if (!isWeb()) { if (el) el.remove(); return; }
+    if (!el) { el = document.createElement('div'); el.id = 'web-note'; el.className = 'banner info'; $('.big-actions').before(el); }
+    el.innerHTML = S.info.fs
+      ? '<span>💡 You’re using the web version. Your books are saved as files on your computer — when you save a new book, choose your <b>Desktop</b>. Your browser may ask permission to edit the file: choose <b>Allow</b>.</span>'
+      : '<span>💡 This browser can’t save straight to your Desktop, so books are kept inside the browser. Click <b>Save</b> to download a copy. For saving to your Desktop, open this page in <b>Google Chrome</b> or <b>Microsoft Edge</b>.</span>';
   }
 
   async function renderRecovery() {
@@ -423,14 +443,14 @@
             <span class="sc-title">${s.title}${s.rec ? ' <span class="pill">Recommended</span>' : ''}</span>
             <span class="sc-sub">${s.sub}</span></button>`).join('')}
         </div>
-        <p class="where-line">📍 Your book will be saved on your <b>Desktop</b>, and it saves itself as you write. <button class="btn link" id="nb-folder">Save it somewhere else</button></p>`,
+        <p class="where-line">📍 ${isWeb() && S.info.fs ? 'When you click <b>Create my book</b>, a save window opens. Choose your <b>Desktop</b> (it’s suggested) and click <b>Save</b>. After that, your book saves itself as you write.' : `Your book will be saved ${saveSpot()}, and it saves itself as you write.`} ${isWeb() ? '' : '<button class="btn link" id="nb-folder">Save it somewhere else</button>'}</p>`,
       onOpen: (w) => {
         $$('.size-card', w).forEach((c) => c.addEventListener('click', () => {
           $$('.size-card', w).forEach((x) => x.classList.remove('selected'));
           c.classList.add('selected');
           size = +c.dataset.n;
         }));
-        $('#nb-folder', w).addEventListener('click', async () => {
+        if ($('#nb-folder', w)) $('#nb-folder', w).addEventListener('click', async () => {
           const f = await api.chooseFolder();
           if (f) { folder = f; $('.where-line', w).innerHTML = `📍 Your book will be saved in <b>${esc(f)}</b>.`; }
         });
@@ -450,17 +470,19 @@
     const book = newBook({ title: res.title, author: res.author, pageCount: size, age: size <= 16 ? 'baby' : 'picture' });
     const filePath = await api.newBookPath(res.title, folder);
     loadBook(book, filePath);
-    await saveNow({ quiet: true });
-    toast(`🎉 Your new book is saved ${esc(whereLabel(folder || S.info.desktop))}. Start writing!`, 4500);
+    const saved = await saveNow({ quiet: true });
+    if (saved) toast(`🎉 Your new book is saved ${esc(S.where ? whereLabel(S.where) : whereLabel(folder || S.info.desktop))}. Start writing!`, 4500);
+    else toast('Your book isn’t saved yet — click <b>Save</b> at the top when you’re ready.', 5000);
     if (!localStorageGet('pbw.toured')) setTimeout(() => startTour(), 700);
   }
 
   // ============================================================
   //  EDITOR
   // ============================================================
-  function loadBook(book, filePath) {
+  function loadBook(book, filePath, where) {
     S.book = book;
     S.filePath = filePath;
+    S.where = where || null;
     S.dirty = false;
     const firstStory = book.pages.findIndex((p) => p.role === 'story');
     S.spread = firstStory >= 0 ? spreadOfPage(firstStory + 1) : 0;
@@ -676,7 +698,10 @@
       const d = $('#d-title'); if (d) d.value = S.book.title;
       markDirty();
     });
-    $('#save-status').addEventListener('click', () => { if (S.filePath && !S.dirty) api.showFile(S.filePath); else saveNow(); });
+    $('#save-status').addEventListener('click', () => {
+      if (S.filePath && !S.dirty && !String(S.filePath).startsWith('new:')) { if (!isWeb()) api.showFile(S.filePath); }
+      else saveNow();
+    });
   }
 
   function pickImage(pageNum) {
@@ -1141,7 +1166,7 @@
     const res = await modal({
       title: '📄 Make a PDF',
       wide: true,
-      body: `<p>Choose the kind of PDF you’d like. It will be saved on your <b>Desktop</b>.</p>
+      body: `<p>Choose the kind of PDF you’d like. ${isWeb() ? 'A print window will open — choose <b>Save as PDF</b> there.' : 'It will be saved on your <b>Desktop</b>.'}</p>
         <div class="pdf-grid">
           <button class="pdf-card selected" data-kind="manuscript">
             <span class="pdf-icon">✉️</span><span class="pdf-title">Manuscript</span>
@@ -1177,6 +1202,14 @@
         r = await api.makePDF({ html: Exporter.dummyHTML(S.book, spreads()), fileBase: `${S.book.title} - Book Layout`, landscape: false });
       }
       $('#toast').classList.remove('show');
+      if (r.printed) {
+        await modal({
+          title: '📄 Saving your PDF',
+          body: `<p>In the print window, set <b>Destination</b> (or <b>Printer</b>) to <b>Save as PDF</b>, then click <b>Save</b> and choose your <b>Desktop</b>.</p><p class="muted small">You can also print it on paper from the same window.</p>`,
+          buttons: [{ label: 'Got it', primary: true, value: null }],
+        });
+        return;
+      }
       const act = await modal({
         title: '🎉 Your PDF is ready!',
         body: `<p>It’s saved on your <b>Desktop</b> as:</p><p class="file-name">📄 ${esc(r.fileName)}</p>`,
@@ -1194,14 +1227,16 @@
   //  HELP and TOUR
   // ============================================================
   function showHelp() {
-    const where = S.filePath ? `<p>This book is saved here:<br><span class="file-name">📄 ${esc(S.filePath)}</span></p><button class="btn" id="h-show">Show me the file</button>` : '<p>Books are saved on your <b>Desktop</b> unless you choose somewhere else.</p>';
+    const where = isWeb()
+      ? `<p>${S.info.fs ? 'Your book is a <b>.pbook</b> file on your computer, saved where you chose when you created it (usually the <b>Desktop</b>). It also appears in the list on the first screen.' : 'In this browser, books are kept inside the browser. Click <b>Save</b> to also download a copy (it goes to your Downloads folder). For saving straight to your Desktop, use <b>Google Chrome</b> or <b>Microsoft Edge</b>.'}</p>`
+      : S.filePath ? `<p>This book is saved here:<br><span class="file-name">📄 ${esc(S.filePath)}</span></p><button class="btn" id="h-show">Show me the file</button>` : '<p>Books are saved on your <b>Desktop</b> unless you choose somewhere else.</p>';
     modal({
       title: '❓ Help & Tips',
       wide: true,
       body: `
         <div class="help-grid">
           <div class="help-item"><h4>💾 Where is my book saved?</h4>${where}<p class="muted small">Your book saves itself every few seconds while you work. You can also click <b>Save</b> any time.</p></div>
-          <div class="help-item"><h4>📂 How do I open my book again?</h4><p>Open Picture Book Writer — your books are listed on the first screen. Click one to open it. You can also <b>double-click the book file</b> on your Desktop.</p></div>
+          <div class="help-item"><h4>📂 How do I open my book again?</h4><p>Open Picture Book Writer — your books are listed on the first screen. Click one to open it, or use <b>Open a book from another folder</b>. ${isWeb() ? '' : 'You can also <b>double-click the book file</b> on your Desktop.'}</p></div>
           <div class="help-item"><h4>📖 What is a “spread”?</h4><p>When you open a book, you see two pages side by side — that’s a spread. Each time the reader turns the page, they see a new spread. The <b>Book Map</b> on the left shows every spread.</p></div>
           <div class="help-item"><h4>🎨 I’m not an illustrator!</h4><p>That’s normal! Most picture book writers don’t draw. Just describe the picture in the <b>Picture idea</b> box. Publishers find the illustrator.</p></div>
           <div class="help-item"><h4>🎵 Writing in rhyme?</h4><p>Open the <b>Rhymes</b> tab on the right. Type a word to find rhymes, and use the <b>Beat counter</b> to check each line has a similar rhythm.</p></div>
@@ -1341,6 +1376,9 @@
     window.addEventListener('resize', () => { if (!$('#tour').hidden) $('#tour').hidden = true; });
 
     api.onMenu(command);
+    window.addEventListener('beforeunload', (e) => {
+      if (isWeb() && S.book && S.dirty) { autoSave(); e.preventDefault(); e.returnValue = ''; }
+    });
     api.onOpenPath((p) => openPath(p));
     api.onBeforeClose(async () => {
       stopReading();

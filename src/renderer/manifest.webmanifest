@@ -1,0 +1,17 @@
+{
+  "name": "Picture Book Writer",
+  "short_name": "Picture Books",
+  "description": "A friendly word processor made just for writing children's picture books.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#FBF6EC",
+  "theme_color": "#E9765A",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ],
+  "file_handlers": [
+    { "action": "./", "accept": { "application/x-picture-book": [".pbook"] } }
+  ]
+}
