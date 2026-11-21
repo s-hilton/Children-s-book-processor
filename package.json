@@ -51,7 +51,7 @@
           ]
         }
       ],
-      "icon": "build/icon.png",
+      "icon": "build/icon",
       "artifactName": "Picture-Book-Writer-Setup-${version}.${ext}"
     },
     "nsis": {
@@ -72,7 +72,7 @@
           ]
         }
       ],
-      "icon": "build/icon.png",
+      "icon": "build/icon",
       "category": "public.app-category.productivity",
       "artifactName": "Picture-Book-Writer-${version}-Mac.${ext}",
       "identity": "-"
@@ -84,7 +84,7 @@
       "target": [
         "AppImage"
       ],
-      "icon": "build/icon.png",
+      "icon": "build/icon",
       "category": "Office",
       "artifactName": "Picture-Book-Writer-${version}.${ext}"
     }
