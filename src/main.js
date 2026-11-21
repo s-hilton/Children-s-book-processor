@@ -171,6 +171,7 @@ function buildMenu() {
       submenu: [
         { label: 'Preview My Book', accelerator: 'F5', click: () => send('preview') },
         { label: 'Read My Book Aloud', click: () => send('read') },
+        { label: 'Rearrange Pages…', click: () => send('rearrange') },
         { type: 'separator' },
         { role: 'zoomIn', label: 'Make Everything Bigger', accelerator: 'CmdOrCtrl+=' },
         { role: 'zoomOut', label: 'Make Everything Smaller' },

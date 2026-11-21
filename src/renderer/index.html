@@ -66,6 +66,7 @@
         <div class="panel-head">
           <h3>Book Map</h3>
           <p class="muted small">Click any pages to jump to them</p>
+          <button class="btn rearrange-btn" id="btn-rearrange" data-tip="Move pages around by dragging them">🔀 Rearrange pages</button>
         </div>
         <div id="map-list" class="map-list"></div>
       </aside>
@@ -134,6 +135,21 @@
       <button class="pv-arrow" id="pv-next" aria-label="Next pages">›</button>
     </div>
     <div class="pv-bottom" id="pv-count"></div>
+  </section>
+
+  <!-- ============ REARRANGE PAGES ============ -->
+  <section id="sorter" class="sorter" hidden aria-label="Rearrange pages">
+    <div class="so-top">
+      <div>
+        <h2>🔀 Rearrange your pages</h2>
+        <p class="so-help"><b>Drag</b> a page to a new spot — the other pages shift along to make room. Or use the <b>◀ ▶</b> arrows on a page to move it one step.</p>
+      </div>
+      <div class="so-actions">
+        <button class="btn big" id="so-undo" disabled data-tip="Put the last move back">↩ Undo</button>
+        <button class="btn primary big" id="so-done">✓ Done</button>
+      </div>
+    </div>
+    <div class="so-grid" id="so-grid"></div>
   </section>
 
   <!-- ============ READ-ALOUD BAR ============ -->

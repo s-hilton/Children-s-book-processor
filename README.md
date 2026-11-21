@@ -19,14 +19,15 @@ Open **https://s-hilton.github.io/Children-s-book-processor/** in **Google Chrom
 
 Go to this project's **Releases** page on GitHub and download the installer for your computer. Step-by-step instructions are on the download page (also in [`docs/RELEASE_NOTES.md`](docs/RELEASE_NOTES.md)).
 
-- **Windows:** `Picture-Book-Writer-Setup-1.0.0.exe`. It installs and adds an icon to your Desktop.
-- **Mac:** `Picture-Book-Writer-1.0.0-Mac.dmg`. Drag the app to Applications.
+- **Windows:** `Picture-Book-Writer-Setup-1.1.0.exe`. It installs and adds an icon to your Desktop.
+- **Mac:** `Picture-Book-Writer-1.1.0-Mac.dmg`. Drag the app to Applications.
 
 ## What it does
 
 | Feature | Why it helps |
 |---|---|
 | **Pages and spreads** | You write on two facing pages at a time, just like an open book. Standard sizes: 32 pages (the most common), 24, 40, or a 12-page board book. |
+| **Rearrange pages** | Drag pages into a new order on an overview screen. Arrow buttons move a page one step if dragging is tricky, and **Undo** reverses a move. A picture that spans two pages moves as one piece. |
 | **Book Map** | Thumbnails of every spread, so you can see the whole book at once and jump to any page. |
 | **Picture ideas (art notes)** | A yellow note box on every page for describing the illustration. You don't need to be an illustrator. |
 | **Add sketches or pictures** | Drop a sketch or a reference picture onto any page, or stretch one picture across both pages. |

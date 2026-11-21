@@ -513,6 +513,7 @@
           <span class="pc-num">Page ${pageNum}</span>
           <select class="pc-role" data-tip="What kind of page is this?">${roleOpts}</select>
           <span class="pc-words"></span>
+          <button class="pc-move" data-act="move" data-tip="Move this page somewhere else in the book">🔀 Move</button>
         </div>
         <div class="pc-body">
           ${pic}
@@ -661,6 +662,7 @@
       const p = S.book.pages[n - 1];
       if (btn.dataset.act === 'add-img') pickImage(n);
       if (btn.dataset.act === 'remove-img') { p.image = null; markDirty(); renderSpread(); renderMap(); }
+      if (btn.dataset.act === 'move') openSorter(n);
       if (btn.dataset.act === 'textpos') { p.textPos = p.textPos === 'top' ? 'bottom' : 'top'; markDirty(); renderSpread(); }
     });
     document.addEventListener('selectionchange', () => {
@@ -1224,6 +1226,168 @@
   }
 
   // ============================================================
+  //  REARRANGE PAGES
+  // ============================================================
+  // Pages move as "pieces": a single page, or two pages that share one big picture.
+  const sorter = { history: [], focus: null, dragFrom: null };
+
+  function pieces() {
+    const out = [];
+    const pg = S.book.pages;
+    for (let i = 0; i < pg.length; i++) {
+      if (pg[i].joinWithNext && i + 1 < pg.length) { out.push([pg[i], pg[i + 1]]); i++; } else out.push([pg[i]]);
+    }
+    return out;
+  }
+
+  // Two pages can only share a picture when they face each other (left page = even number).
+  function fixJoins() {
+    const split = [];
+    S.book.pages.forEach((p, i) => {
+      if (!p.joinWithNext) return;
+      const n = i + 1;
+      if (n % 2 === 1 || n === S.book.pages.length) { p.joinWithNext = false; split.push(n); }
+    });
+    return split;
+  }
+
+  function movePiece(from, to) {
+    const list = pieces();
+    if (from === to || to < 0 || to > list.length) return;
+    sorter.history.push({ pages: S.book.pages.slice(), joins: S.book.pages.map((x) => x.joinWithNext) });
+    const [item] = list.splice(from, 1);
+    list.splice(to > from ? to - 1 : to, 0, item);
+    S.book.pages = list.flat();
+    const split = fixJoins();
+    sorter.focus = item[0].id;
+    markDirty();
+    renderSorter();
+    const n = S.book.pages.indexOf(item[0]) + 1;
+    toast(split.length
+      ? `Moved to page ${n}. The big two-page picture was split because those pages no longer face each other.`
+      : `✅ Moved to ${item.length > 1 ? `pages ${n}–${n + 1}` : `page ${n}`}`);
+  }
+
+  function sorterTile(piece, idx, total) {
+    const first = S.book.pages.indexOf(piece[0]) + 1;
+    const joined = piece.length > 1;
+    const p = piece[0];
+    const words = piece.reduce((s, x) => s + pageWords(x), 0);
+    const snippet = piece.map((x) => Words.textOf(x.text).trim()).join(' ').slice(0, 90);
+    const label = p.role === 'story' ? '' : `<span class="so-role">${ROLES[p.role]}</span>`;
+    return `<div class="so-tile ${joined ? 'wide' : ''} ${sorter.focus === p.id ? 'focus' : ''}" draggable="true" data-piece="${idx}">
+      <div class="so-thumb">${p.image ? `<img src="${p.image}" alt="">` : ''}${label}<span class="so-snip">${esc(snippet) || '<i class="muted">empty page</i>'}</span></div>
+      <div class="so-foot">
+        <button class="so-arrow" data-dir="-1" data-tip="Move one step earlier" ${idx === 0 ? 'disabled' : ''}>◀</button>
+        <span class="so-num">${joined ? `Pages ${first}–${first + 1}` : `Page ${first}`}<span class="muted"> · ${words}w</span></span>
+        <button class="so-arrow" data-dir="1" data-tip="Move one step later" ${idx === total - 1 ? 'disabled' : ''}>▶</button>
+      </div></div>`;
+  }
+
+  function renderSorter() {
+    const list = pieces();
+    const grid = $('#so-grid');
+    // Group pieces into spreads so the layout looks like the book.
+    const groups = [];
+    let page = 1;
+    let cur = { pieces: [], first: 1 };
+    groups.push({ cover: true, pieces: [] });
+    list.forEach((pc, idx) => {
+      const g = page === 1 ? groups[0] : (page % 2 === 0 ? (cur = { pieces: [] }, groups.push(cur), cur) : cur);
+      g.pieces.push([pc, idx]);
+      page += pc.length;
+    });
+    grid.innerHTML = groups.map((g, gi) => `
+      <div class="so-spread">
+        ${g.cover ? '<div class="so-tile cover-slot"><span>Inside of cover</span></div>' : ''}
+        ${g.pieces.map(([pc, idx]) => sorterTile(pc, idx, list.length)).join('')}
+        ${gi === groups.length - 1 && !g.cover && g.pieces.reduce((s, [pc]) => s + pc.length, 0) === 1 ? '<div class="so-tile cover-slot"><span>Inside of cover</span></div>' : ''}
+      </div>`).join('');
+    $('#so-undo').disabled = !sorter.history.length;
+    const f = $('.so-tile.focus', grid);
+    if (f) f.scrollIntoView({ block: 'nearest' });
+  }
+
+  function openSorter(focusPage) {
+    if (!S.book) return;
+    stopReading();
+    sorter.history = [];
+    sorter.focus = focusPage ? S.book.pages[focusPage - 1].id : null;
+    $('#sorter').hidden = false;
+    renderSorter();
+  }
+
+  function closeSorter() {
+    $('#sorter').hidden = true;
+    const focusIdx = sorter.focus ? S.book.pages.findIndex((p) => p.id === sorter.focus) : -1;
+    renderMap();
+    updateStats();
+    if (focusIdx >= 0) goSpread(spreadOfPage(focusIdx + 1)); else renderSpread();
+  }
+
+  function wireSorter() {
+    const grid = $('#so-grid');
+    $('#btn-rearrange').addEventListener('click', () => openSorter());
+    $('#so-done').addEventListener('click', closeSorter);
+    $('#so-undo').addEventListener('click', () => {
+      const prev = sorter.history.pop();
+      if (!prev) return;
+      S.book.pages = prev.pages;
+      prev.pages.forEach((x, i) => { x.joinWithNext = prev.joins[i]; });
+      markDirty();
+      renderSorter();
+      toast('↩ Move undone');
+    });
+    grid.addEventListener('click', (e) => {
+      const a = e.target.closest('.so-arrow');
+      if (!a) return;
+      const idx = +a.closest('.so-tile').dataset.piece;
+      const dir = +a.dataset.dir;
+      const list = pieces();
+      if (list[idx].length > 1) {
+        // A two-page picture jumps a whole spread, so it stays on facing pages.
+        const first = S.book.pages.indexOf(list[idx][0]) + 1;
+        const at = (pageNum) => { const i = list.findIndex((pc) => S.book.pages.indexOf(pc[0]) + 1 === pageNum); return i < 0 ? list.length : i; };
+        movePiece(idx, dir > 0 ? at(first + 4) : at(first - 2));
+      } else {
+        movePiece(idx, dir > 0 ? idx + 2 : idx - 1);
+      }
+    });
+    grid.addEventListener('dragstart', (e) => {
+      const t = e.target.closest('.so-tile[data-piece]');
+      if (!t) return;
+      sorter.dragFrom = +t.dataset.piece;
+      t.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', t.dataset.piece);
+    });
+    const clearMarks = () => $$('.drop-before, .drop-after', grid).forEach((x) => x.classList.remove('drop-before', 'drop-after'));
+    const dropSpot = (e) => {
+      const t = e.target.closest('.so-tile[data-piece]');
+      if (!t) return null;
+      const r = t.getBoundingClientRect();
+      const after = e.clientX > r.left + r.width / 2;
+      return { t, to: +t.dataset.piece + (after ? 1 : 0), after };
+    };
+    grid.addEventListener('dragover', (e) => {
+      if (sorter.dragFrom === null) return;
+      e.preventDefault();
+      clearMarks();
+      const d = dropSpot(e);
+      if (d) d.t.classList.add(d.after ? 'drop-after' : 'drop-before');
+    });
+    grid.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const d = dropSpot(e);
+      clearMarks();
+      const from = sorter.dragFrom;
+      sorter.dragFrom = null;
+      if (d && from !== null) movePiece(from, d.to);
+    });
+    grid.addEventListener('dragend', () => { sorter.dragFrom = null; clearMarks(); $$('.dragging', grid).forEach((x) => x.classList.remove('dragging')); });
+  }
+
+  // ============================================================
   //  HELP and TOUR
   // ============================================================
   function showHelp() {
@@ -1238,6 +1402,7 @@
           <div class="help-item"><h4>💾 Where is my book saved?</h4>${where}<p class="muted small">Your book saves itself every few seconds while you work. You can also click <b>Save</b> any time.</p></div>
           <div class="help-item"><h4>📂 How do I open my book again?</h4><p>Open Picture Book Writer — your books are listed on the first screen. Click one to open it, or use <b>Open a book from another folder</b>. ${isWeb() ? '' : 'You can also <b>double-click the book file</b> on your Desktop.'}</p></div>
           <div class="help-item"><h4>📖 What is a “spread”?</h4><p>When you open a book, you see two pages side by side — that’s a spread. Each time the reader turns the page, they see a new spread. The <b>Book Map</b> on the left shows every spread.</p></div>
+          <div class="help-item"><h4>🔀 How do I move pages around?</h4><p>Click <b>Rearrange pages</b> at the top of the Book Map (or <b>🔀 Move</b> on any page). Drag a page to its new spot, or use the ◀ ▶ arrows. Made a mistake? Click <b>Undo</b>.</p></div>
           <div class="help-item"><h4>🎨 I’m not an illustrator!</h4><p>That’s normal! Most picture book writers don’t draw. Just describe the picture in the <b>Picture idea</b> box. Publishers find the illustrator.</p></div>
           <div class="help-item"><h4>🎵 Writing in rhyme?</h4><p>Open the <b>Rhymes</b> tab on the right. Type a word to find rhymes, and use the <b>Beat counter</b> to check each line has a similar rhythm.</p></div>
           <div class="help-item"><h4>📄 Sending to a publisher?</h4><p>Click <b>Make a PDF</b> and choose <b>Manuscript</b>. It creates the standard format publishers expect.</p></div>
@@ -1312,6 +1477,7 @@
     if (cmd === 'saveAs') return saveCopyAs();
     if (cmd === 'pdf') return makePDF();
     if (cmd === 'preview') return openPreview();
+    if (cmd === 'rearrange') return openSorter();
     if (cmd === 'read') return startReading(false);
   }
 
@@ -1362,6 +1528,7 @@
         if (e.key === 'Escape') closePreview();
         return;
       }
+      if (!$('#sorter').hidden) { if (e.key === 'Escape') closeSorter(); return; }
       if (!$('#tour').hidden && e.key === 'Escape') { $('#tour').hidden = true; return; }
       const typing = e.target.closest?.('input, textarea, select, [contenteditable]');
       if (S.book && !typing && !$('#modal-root').children.length) {
@@ -1410,13 +1577,14 @@
     S.info = await api.info();
     wireGlobal();
     wireEditor();
+    wireSorter();
     if (S.info.pendingOpenPath) await openPath(S.info.pendingOpenPath);
     else await showHome();
   }
 
   // Exposed for the automated demo / tests only.
   window.__pbw = {
-    S, goSpread, goPage, showRhymes, insertWord, previewTurn, startTour, spreads, markDirty,
+    S, goSpread, goPage, openSorter, movePiece, showRhymes, insertWord, previewTurn, startTour, spreads, markDirty,
     refreshAll: () => { renderSpread(); renderMap(); renderDetails(); updateStats(); },
   };
 

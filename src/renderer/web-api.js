@@ -88,7 +88,7 @@
   const listeners = { open: null };
 
   window.bookAPI = {
-    info: async () => ({ web: true, fs: FS, desktop: null, platform: 'web', version: '1.0.0', pendingOpenPath: await takeLaunchFile() }),
+    info: async () => ({ web: true, fs: FS, desktop: null, platform: 'web', version: '1.1.0', pendingOpenPath: await takeLaunchFile() }),
 
     listBooks: async () => {
       const recs = await allRecs();
